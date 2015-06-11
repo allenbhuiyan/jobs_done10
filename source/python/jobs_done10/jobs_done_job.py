@@ -230,17 +230,20 @@ class JobsDoneJob(object):
             if option_name not in JobsDoneJob.PARSEABLE_OPTIONS:
                 raise UnknownJobsDoneFileOption(option_name)
 
-            from ben10.foundation.types_ import AsList
             obtained_type = type(option_value)
-            expected_types = AsList(JobsDoneJob.PARSEABLE_OPTIONS[option_name])
+            try:
+                expected_types = list(JobsDoneJob.PARSEABLE_OPTIONS[option_name])
+            except TypeError:
+                expected_types = [JobsDoneJob.PARSEABLE_OPTIONS[option_name]]
+
             if obtained_type not in expected_types:
                 raise JobsDoneFileTypeError(option_name, obtained_type, expected_types)
 
         # List all possible matrix_rows
         matrix_rows = cls._MatrixRow.CreateFromDict(jd_data.get('matrix', {}))
 
-        from ben10.foundation.types_ import Boolean
-        ignore_unmatchable = Boolean(jd_data.get('ignore_unmatchable', 'false'))
+        boolean = {'true':True, 'false':False}
+        ignore_unmatchable = boolean[jd_data.get('ignore_unmatchable', 'false').lower()]
         if not ignore_unmatchable:
             # Raise an error if a condition can never be matched
             for yaml_dict in cls._IterDicts(jd_data):
@@ -308,8 +311,8 @@ class JobsDoneJob(object):
         :param repository:
             .. seealso:: CreateFromYAML
         '''
-        from ben10.filesystem import GetFileContents
-        return cls.CreateFromYAML(GetFileContents(filename), repository)
+        with open(filename) as f:
+            return cls.CreateFromYAML(f.read(), repository)
 
 
     _MATCH_ANY = object()

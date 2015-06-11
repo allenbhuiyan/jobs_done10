@@ -1,2 +1,7 @@
-jenkins-webapi==0.4.0
-pyyaml==3.10
+git+git://github.com/ESSS/xml_factory.git#egg=xml_factory
+GitPython
+jenkins-webapi==0.4.1
+pyyaml
+py==1.4.26
+pytest
+pytest-mock

@@ -1,30 +1,31 @@
 from __future__ import unicode_literals
-from ben10.foundation.bunch import Bunch
 
 
 
 #===================================================================================================
 #  Repository
 #===================================================================================================
-class Repository(Bunch):
+class Repository(object):
     '''
     Represents a source control repository used in a continuous integration job.
 
-    :cvar unicode url:
+    :ivar unicode url:
         Repository clone URL
 
-    :cvar unicode branch:
+    :ivar unicode branch:
         Branch used in a particular job
 
-    :cvar unicode name:
+    :ivar unicode name:
         Repository name, determined from URL.
 
         e.g.
             url = 'https://server/repo.git'
             name = 'repo'
     '''
-    url = None
-    branch = 'master'
+    def __init__(self, url, branch='master'):
+        self.url = url
+        self.branch = branch
+
 
     @property
     def name(self):

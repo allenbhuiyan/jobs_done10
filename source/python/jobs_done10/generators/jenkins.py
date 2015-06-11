@@ -4,33 +4,30 @@ Module containing everything related to Jenkins in jobs_done10.
 This includes a generator, job publishers, constants and command line interface commands.
 '''
 from __future__ import absolute_import, unicode_literals
-from ben10.foundation.bunch import Bunch
-from ben10.foundation.decorators import Implements
-from ben10.foundation.memoize import Memoize
-from ben10.interface import ImplementsInterface
-from jobs_done10.job_generator import IJobGenerator
+from jobs_done10.utils import memoized
 
 
 
 #===================================================================================================
 # JenkinsJob
 #===================================================================================================
-class JenkinsJob(Bunch):
+class JenkinsJob(object):
     '''
     Represents a Jenkins job.
 
-    :cvar unicode name:
+    :ivar unicode name:
         Job name
 
-    :cvar Repository repository:
+    :ivar Repository repository:
         Repository that this job belongs to
 
-    :cvar unicode xml:
+    :ivar unicode xml:
         Job XML contents
     '''
-    name = None
-    repository = None
-    xml = None
+    def __init__(self,name,repository,xml):
+        self.name = name
+        self.repository = repository
+        self.xml = xml
 
 
 
@@ -41,8 +38,6 @@ class JenkinsXmlJobGenerator(object):
     '''
     Generates Jenkins jobs.
     '''
-    ImplementsInterface(IJobGenerator)
-
     def __init__(self):
         # Initialize some variables
         self.__jjgen = None
@@ -51,7 +46,6 @@ class JenkinsXmlJobGenerator(object):
         self.repository = None
 
 
-    @Implements(IJobGenerator.Reset)
     def Reset(self):
         from xml_factory import XmlFactory
 
@@ -121,12 +115,10 @@ class JenkinsXmlJobGenerator(object):
     #===============================================================================================
     # Configurator functions (.. seealso:: JobsDoneJob ivars for docs)
     #===============================================================================================
-    @Implements(IJobGenerator.SetRepository)
     def SetRepository(self, repository):
         self.repository = repository
 
 
-    @Implements(IJobGenerator.SetMatrix)
     def SetMatrix(self, matrix, matrix_row):
         label_expression = self.repository.name
         self.job_name = self.GetJobGroup(self.repository)
@@ -237,8 +229,6 @@ class JenkinsXmlJobGenerator(object):
             Target XmlFactory object to set options.
             If None, will use the main project's Xml (`self.git`)
         '''
-        from ben10.foundation.types_ import AsList
-
         if git_xml is None:
             git_xml = self.git
 
@@ -247,8 +237,11 @@ class JenkinsXmlJobGenerator(object):
         def _Set(option, xml_path, default=None):
             value = git_options.pop(option, default)
             if value is not None:
-                for xml_path in AsList(xml_path):
+                if isinstance(xml_path, basestring):
                     git_xml[xml_path] = value
+                else:
+                    for xml_path in xml_path:
+                        git_xml[xml_path] = value
 
         # Git branch option is set in many places
         branch_paths = [
@@ -523,13 +516,10 @@ class JenkinsJobPublisher(object):
         :param unicode output_directory:
              Target directory for outputting job .xmls
         '''
-        from ben10.filesystem import CreateFile
         import os
         for job in self.jobs.values():
-            CreateFile(
-                filename=os.path.join(output_directory, job.name),
-                contents=job.xml
-            )
+            with open(os.path.join(output_directory, job.name), 'w') as f:
+                f.write(job.xml)
 
 
     def _GetMatchingJobs(self, jenkins_api):
@@ -558,7 +548,7 @@ class JenkinsJobPublisher(object):
         return matching_jobs
 
 
-    @Memoize
+    @memoized
     def _GetJenkinsJobBranch(self, jenkins_api, jenkins_job):
         '''
         :param jenkins.Jenkins jenkins_api:
@@ -571,7 +561,7 @@ class JenkinsJobPublisher(object):
             Name of `jenkins_job`s branch
 
         .. note::
-            This function was separated to make use of Memoize cacheing, avoiding multiple queries
+            This function was separated to make use of @memoize cacheing, avoiding multiple queries
             to the same jenkins job config.xml
         '''
         from xml.etree import ElementTree
@@ -648,21 +638,21 @@ def GetJobsFromDirectory(directory='.'):
 
         .. seealso:: GetJobsFromFile
     '''
-    from ben10.filesystem import FileNotFoundError, GetFileContents
-    from gitit.git import Git
+    import git
     from jobs_done10.jobs_done_job import JOBS_DONE_FILENAME
     from jobs_done10.repository import Repository
     import os
 
-    git = Git()
+    repo=git.Repo(directory)
     repository = Repository(
-        url=git.GetRemoteUrl(repo_path=directory),
-        branch=git.GetCurrentBranch(repo_path=directory)
+        url=repo.remote().url,
+        branch=unicode(repo.active_branch()),
     )
 
     try:
-        jobs_done_file_contents = GetFileContents(os.path.join(directory, JOBS_DONE_FILENAME))
-    except FileNotFoundError:
+        with open(os.path.join(directory, JOBS_DONE_FILENAME)) as f:
+            jobs_done_file_contents = f.read()
+    except IOError:
         jobs_done_file_contents = None
 
     return repository, GetJobsFromFile(repository, jobs_done_file_contents)

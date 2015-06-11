@@ -1,7 +1,4 @@
 from __future__ import unicode_literals
-from ben10.filesystem import CreateDirectory, CreateFile, GetFileContents, ListFiles
-from ben10.foundation.string import Dedent
-from gitit.git import Git
 from jobs_done10.generators.jenkins import (GetJobsFromDirectory, GetJobsFromFile, JenkinsJob,
     JenkinsJobPublisher, JenkinsXmlJobGenerator, UploadJobsFromFile)
 from jobs_done10.job_generator import JobGeneratorConfigurator
@@ -12,6 +9,7 @@ import jenkins
 import os
 import pytest
 import re
+from jobs_done10.utils import Dedent
 
 
 
@@ -64,8 +62,7 @@ class TestJenkinsXmlJobGenerator(object):
           </scm>
           <assignedNode>fake</assignedNode>
         </project>
-        ''',
-        ignore_last_linebreak=True
+        '''
     )
 
 
@@ -1509,13 +1506,13 @@ class TestJenkinsActions(object):
         assert len(jobs) == 3
 
 
-    def testGetJobsFromDirectory(self, embed_data):
-        repo_path = embed_data['git_repository']
-        CreateDirectory(repo_path)
+    def testGetJobsFromDirectory(self, tmpdir):
+	import git
 
         # Prepare git repository
-        git = Git()
-        git.Execute(['init'], repo_path)
+        repo_path = unicode(tmpdir.mkdir('gitrepo'))
+	repo = git.Repo.init(repo_path, bare=True)
+	repo.init()	
         git.AddRemote(repo_path, 'origin', self._REPOSITORY.url)
         git.CreateLocalBranch(repo_path, self._REPOSITORY.branch)
         CreateFile(os.path.join(repo_path, '.gitignore'), '')

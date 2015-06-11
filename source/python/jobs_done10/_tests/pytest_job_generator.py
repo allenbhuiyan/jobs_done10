@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
-from ben10.interface import ImplementsInterface
-from jobs_done10.job_generator import (IJobGenerator, JobGeneratorAttributeError,
-    JobGeneratorConfigurator)
+from jobs_done10.job_generator import JobGeneratorAttributeError, JobGeneratorConfigurator
 from jobs_done10.jobs_done_job import JobsDoneJob
 from jobs_done10.repository import Repository
 import contextlib
@@ -11,7 +9,6 @@ import pytest
 
 def testJobGeneratorConfigurator():
     class MyGenerator(object):
-        ImplementsInterface(IJobGenerator)
 
         def SetRepository(self, repository):
             assert repository.url == 'http://repo.git'

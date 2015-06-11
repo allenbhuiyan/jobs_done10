@@ -1,14 +1,15 @@
 from __future__ import unicode_literals
-from ben10.filesystem import CreateFile
-from ben10.foundation.string import Dedent
-from jobs_done10.jobs_done_job import (JobsDoneFileTypeError, JobsDoneJob,
-    UnknownJobsDoneFileOption, UnmatchableConditionError)
+from jobs_done10.jobs_done_job import (
+    JobsDoneFileTypeError, JobsDoneJob, UnknownJobsDoneFileOption, UnmatchableConditionError)
 from jobs_done10.repository import Repository
+from jobs_done10.utils import Dedent
 import pytest
 
 
 
 _REPOSITORY = Repository(url='https://space.git', branch='milky_way')
+
+
 
 def testCreateJobsDoneJobFromYAML():
     yaml_contents = Dedent(
@@ -333,8 +334,9 @@ def testTypeChecking():
     assert e.value.obtained_type == unicode
 
 
-def testCreateFromFile(embed_data):
-    contents = Dedent(
+def testCreateFromFile(tmpdir):
+    job_file = tmpdir.join(".jobs_done.yaml") 
+    job_file.write(Dedent(
         '''
         matrix:
             planet:
@@ -343,12 +345,9 @@ def testCreateFromFile(embed_data):
             - venus
 
         '''
-    )
-    filename = embed_data['.jobs_done.yaml']
-    CreateFile(filename, contents)
+    ))
 
-    jobs = JobsDoneJob.CreateFromFile(filename, repository=_REPOSITORY)
-
+    jobs = JobsDoneJob.CreateFromFile(job_file.strpath, repository=_REPOSITORY)
     assert len(jobs) == 3
 
 
